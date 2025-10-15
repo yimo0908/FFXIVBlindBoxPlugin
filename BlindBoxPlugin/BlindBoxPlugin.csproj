@@ -7,10 +7,14 @@
     <PackageProjectUrl>https://github.com/yimo0908/FFXIVBlindBoxPlugin</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-</PropertyGroup>
+  <ItemGroup>
+    <Reference Include="FFXIVClientStructs">
+        <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
+        <Private>false</Private>
+    </Reference>
+  </ItemGroup>
 
 </Project>

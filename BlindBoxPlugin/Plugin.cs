@@ -27,7 +27,7 @@ namespace BlindBoxPlugin
         {
             Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
-            MainWindow = new MainWindow(this, DataManager); // 传递 DataManager
+            MainWindow = new MainWindow(this);
             ConfigWindow = new ConfigWindow(this);
 
             _windowSystem.AddWindow(MainWindow);

@@ -1,11 +1,12 @@
 using System;
-using System.Numerics;
-using Dalamud.Interface.Windowing;
-using Dalamud.Bindings.ImGui;
 using System.Collections.Generic;
+using System.Numerics;
+using Dalamud.Bindings.ImGui;
+using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using Dalamud.Game.Text;
+using Dalamud.Interface.Windowing;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
 
 namespace BlindBoxPlugin.Windows
@@ -13,12 +14,7 @@ namespace BlindBoxPlugin.Windows
     public class MainWindow : Window, IDisposable
     {
         private readonly Plugin _plugin;
-        private readonly Dalamud.Plugin.Services.IDataManager _dataManager;
-
-        // We give this window a hidden ID using ##
-        // So that the user will see "My Amazing Window" as window title,
-        // but for ImGui the ID is "My Amazing Window##With a hidden ID"
-        public MainWindow(Plugin plugin, Dalamud.Plugin.Services.IDataManager dataManager) : base("盲盒信息")
+        public MainWindow(Plugin plugin) : base("盲盒信息")
         {
 
             Flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
@@ -29,9 +25,7 @@ namespace BlindBoxPlugin.Windows
                 MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
             };
             SizeCondition = ImGuiCond.FirstUseEver;
-
             _plugin = plugin;
-            _dataManager = dataManager;
         }
 
         public void Dispose() { }
@@ -105,7 +99,7 @@ namespace BlindBoxPlugin.Windows
 
         private void LinkItemToChat(uint item)
         {
-            var itemSheet = _dataManager.GetExcelSheet<Item>();
+            var itemSheet = Plugin.DataManager.GetExcelSheet<Item>();
             var id = itemSheet.GetRowOrDefault(item);
             var rarity = (id?.Rarity ?? 0);
             var itemName = (id?.Name.ToString() ?? "");
@@ -124,17 +118,21 @@ namespace BlindBoxPlugin.Windows
                 new RawPayload([0x02, 0x27, 0x07, 0xCF, 0x01, 0x01, 0x01, 0xFF, 0x01, 0x03]),
                 new RawPayload([0x02, 0x13, 0x02, 0xEC, 0x03])
             };
-            var messagePayloads = new List<Payload>(payloadList);
-            messagePayloads.AddRange([new TextPayload(" 已复制到剪切板")]);
-            var fullMessage = new SeString(messagePayloads);
-            Plugin.ChatGui.Print(new XivChatEntry { Message = fullMessage });
+            Plugin.ChatGui.Print(new XivChatEntry { Message = new SeString(payloadList) });
         }
 
         private void CopyItemNameToClipboard(uint itemId)
         {
-            var itemSheet = _dataManager.GetExcelSheet<Item>();
+            var itemSheet = Plugin.DataManager.GetExcelSheet<Item>();
             var itemName = itemSheet.GetRow(itemId).Name.ExtractText();
             ImGui.SetClipboardText(itemName);
+        }
+
+        private unsafe void ShowGimmickHint(string text, RaptureAtkModule.TextGimmickHintStyle style = RaptureAtkModule.TextGimmickHintStyle.Info, int duration = 5)
+        {
+            var raptureAtkModule = RaptureAtkModule.Instance();
+            if (raptureAtkModule == null) return;
+            raptureAtkModule->ShowTextGimmickHint(text, style, duration);
         }
 
         private void DrawBlindBoxItem(string name, bool unique, uint itemId)
@@ -148,8 +146,9 @@ namespace BlindBoxPlugin.Windows
 
             if (ImGui.IsItemClicked())
             {
-                LinkItemToChat(itemId); // 正确传递 itemId
+                LinkItemToChat(itemId);
                 CopyItemNameToClipboard(itemId);
+                ShowGimmickHint($"{name} 已复制到剪切板", RaptureAtkModule.TextGimmickHintStyle.Info, 4);
             }
         }
     }
