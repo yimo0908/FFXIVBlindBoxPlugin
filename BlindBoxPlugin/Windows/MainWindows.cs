@@ -37,6 +37,11 @@ namespace BlindBoxPlugin.Windows
             var displayModeIndex = (int)_plugin.Configuration.DisplayMode;
             ImGui.SetNextItemWidth(80);
             ImGui.Text("点击物品名称可复制到剪切板。");
+            ImGui.TextColored(new Vector4(0, 1, 0, 1),  "已获得为绿色，");
+            ImGui.SameLine();
+            ImGui.Text("未获得可交易为白色，");
+            ImGui.SameLine();
+            ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1), "未获得不可交易为灰色。");
             if (ImGui.Combo("显示物品的种类", ref displayModeIndex, DisplayModeNames.Names(), displayModes.Length))
             {
                 _plugin.Configuration.DisplayMode = (DisplayMode)displayModeIndex;
@@ -99,8 +104,7 @@ namespace BlindBoxPlugin.Windows
 
         private void LinkItemToChat(uint item)
         {
-            var itemSheet = Plugin.DataManager.GetExcelSheet<Item>();
-            var id = itemSheet.GetRowOrDefault(item);
+            var id = Plugin.DataManager.GetExcelSheet<Item>().GetRowOrDefault(item);
             var rarity = (id?.Rarity ?? 0);
             var itemName = (id?.Name.ToString() ?? "");
 
@@ -123,8 +127,7 @@ namespace BlindBoxPlugin.Windows
 
         private void CopyItemNameToClipboard(uint itemId)
         {
-            var itemSheet = Plugin.DataManager.GetExcelSheet<Item>();
-            var itemName = itemSheet.GetRow(itemId).Name.ExtractText();
+            var itemName = Plugin.DataManager.GetExcelSheet<Item>().GetRow(itemId).Name.ExtractText();
             ImGui.SetClipboardText(itemName);
         }
 
@@ -137,12 +140,35 @@ namespace BlindBoxPlugin.Windows
 
         private void DrawBlindBoxItem(string name, bool unique, uint itemId)
         {
+            bool isUntradable = Plugin.DataManager.GetExcelSheet<Item>().GetRowOrDefault(itemId)?.IsUntradable ?? false;
             if (unique)
             {
                 ImGui.Text("*");
                 ImGui.SameLine();
             }
-            ImGui.Text(name);
+
+            // 获取当前盲盒信息以判断物品是否已获得
+            Vector4 color;
+            if (BlindBoxData.BlindBoxInfoMap.TryGetValue(_plugin.Configuration.SelectedItem, out var blindBox))
+            {
+                // 如果物品在已获得列表中，设置为绿色
+                if (blindBox.AcquiredItems.Exists(item => item.RowId == itemId))
+                {
+                    color = new Vector4(0, 1, 0, 1); // 绿色
+                }
+                else
+                {
+                    // 根据是否可交易设置其他颜色
+                    color = isUntradable ? new Vector4(0.5f, 0.5f, 0.5f, 1) : new Vector4(1, 1, 1, 1);
+                }
+            }
+            else
+            {
+                // 默认颜色
+                color = isUntradable ? new Vector4(0.5f, 0.5f, 0.5f, 1) : new Vector4(1, 1, 1, 1);
+            }
+
+            ImGui.TextColored(color, name);
 
             if (ImGui.IsItemClicked())
             {
@@ -151,5 +177,6 @@ namespace BlindBoxPlugin.Windows
                 ShowGimmickHint($"{name} 已复制到剪切板", RaptureAtkModule.TextGimmickHintStyle.Info, 4);
             }
         }
+
     }
 }
