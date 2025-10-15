@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Interface.Windowing;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Lumina.Excel.Sheets;
 
 namespace BlindBoxPlugin.Windows
 {
     public class ConfigWindow : Window, IDisposable
     {
-        private readonly Configuration Configuration;
+        private readonly Configuration _configuration;
 
         private string _text = "";
         private List<string> _result = [];
@@ -29,7 +29,7 @@ namespace BlindBoxPlugin.Windows
             };
             SizeCondition = ImGuiCond.Always;
 
-            Configuration = plugin.Configuration;
+            _configuration = plugin.Configuration;
         }
 
         public void Dispose() { }
@@ -38,7 +38,7 @@ namespace BlindBoxPlugin.Windows
         {
             if (ImGui.BeginTabBar("BlindBoxTabBar", ImGuiTabBarFlags.AutoSelectNewTabs))
             {
-                if (ImGui.BeginTabItem("数据转换"))
+                if (ImGui.BeginTabItem("获取物品Id"))
                 {
                     var windowsWidth = ImGui.GetWindowWidth();
                     var text = _text;
@@ -54,23 +54,17 @@ namespace BlindBoxPlugin.Windows
                     var result = string.Join("\n", _result);
                     ImGui.InputTextMultiline("##result", ref result, ushort.MaxValue, new Vector2(0, 0), ImGuiInputTextFlags.ReadOnly);
 
-                    if (ImGui.Button("转换"))
+                    if (ImGui.Button("获取"))
                     {
                         var items = _text.Split('\n');
                         List<string> itemIds = [];
 
                         foreach (var item in items)
                         {
-                            var i = Plugin.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name == item).FirstOrDefault();
-                            if (i != null)
-                            {
-                                // 如果名称正确，添加到结果列表
-                                itemIds.Add(i.Value.RowId.ToString());
-                            }
-                            else
-                            {
-                                itemIds.Add("名称有误");
-                            }
+                            var sheet = Plugin.DataManager.GetExcelSheet<Item>();
+                            var i = sheet.FirstOrDefault(i => i.Name == item);
+                            var rowId = i.RowId != 0 ? i.RowId.ToString() : "名称有误";
+                            itemIds.Add(rowId);
                         }
                         _result = itemIds;
                     }

@@ -23,7 +23,7 @@ namespace BlindBoxPlugin
         Missing
     }
 
-    public class DisplayModeNames
+    public static class DisplayModeNames
     {
         public static string[] Names()
         {

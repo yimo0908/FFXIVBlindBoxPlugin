@@ -10,15 +10,16 @@ namespace BlindBoxPlugin
     public sealed class Plugin : IDalamudPlugin
     {
         [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
-        [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
+        [PluginService] private static ICommandManager CommandManager { get; set; } = null!;
         [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
+        [PluginService] public static IChatGui ChatGui { get; set; } = null!;
 
         public string Name => "Blind Box";
         private const string CommandName = "/blindbox";
 
         public Configuration Configuration { get; init; }
 
-        public readonly WindowSystem WindowSystem = new("BlindBox");
+        private readonly WindowSystem _windowSystem = new("BlindBox");
         private ConfigWindow ConfigWindow { get; init; }
         private MainWindow MainWindow { get; init; }
 
@@ -26,11 +27,11 @@ namespace BlindBoxPlugin
         {
             Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
-            MainWindow = new MainWindow(this);
+            MainWindow = new MainWindow(this, DataManager); // 传递 DataManager
             ConfigWindow = new ConfigWindow(this);
 
-            WindowSystem.AddWindow(MainWindow);
-            WindowSystem.AddWindow(ConfigWindow);
+            _windowSystem.AddWindow(MainWindow);
+            _windowSystem.AddWindow(ConfigWindow);
 
             CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
             {
@@ -38,18 +39,13 @@ namespace BlindBoxPlugin
             });
 
             PluginInterface.UiBuilder.Draw += DrawUI;
-
-            // This adds a button to the plugin installer entry of this plugin which allows
-            // to toggle the display status of the configuration ui
             PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
-
-            // Adds another button that is doing the same but for the main ui of the plugin
             PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
         }
 
         public void Dispose()
         {
-            WindowSystem.RemoveAllWindows();
+            _windowSystem.RemoveAllWindows();
 
             ConfigWindow.Dispose();
             MainWindow.Dispose();
@@ -59,7 +55,6 @@ namespace BlindBoxPlugin
 
         private void OnCommand(string command, string args)
         {
-            // in response to the slash command, just display our main ui
             if (args == "config")
             {
                 ConfigWindow.Toggle();
@@ -70,8 +65,8 @@ namespace BlindBoxPlugin
             }
         }
 
-        private void DrawUI() => WindowSystem.Draw();
-        public void ToggleConfigUI() => ConfigWindow.Toggle();
-        public void ToggleMainUI() => MainWindow.Toggle();
+        private void DrawUI() => _windowSystem.Draw();
+        private void ToggleConfigUI() => ConfigWindow.Toggle();
+        private void ToggleMainUI() => MainWindow.Toggle();
     }
 }

@@ -4,3 +4,4 @@ bin/
 *.user
 Dalamud/
 build/
+/.idea
