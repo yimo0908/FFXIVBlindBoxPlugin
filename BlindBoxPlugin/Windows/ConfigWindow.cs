@@ -18,14 +18,15 @@ namespace BlindBoxPlugin.Windows
         // We give this window a constant ID using ###
         // This allows for labels being dynamic, like "{FPS Counter}fps###XYZ counter window",
         // and the window ID will always be "###XYZ counter window" for ImGui
-        public ConfigWindow(Plugin plugin) : base("盲盒设置")
+        public ConfigWindow(Plugin plugin)
+            : base("盲盒设置")
         {
             Flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
 
             SizeConstraints = new WindowSizeConstraints
             {
                 MinimumSize = new Vector2(480, 270),
-                MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
+                MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
             };
             SizeCondition = ImGuiCond.Always;
 
@@ -43,7 +44,14 @@ namespace BlindBoxPlugin.Windows
                     var windowsWidth = ImGui.GetWindowWidth();
                     var text = _text;
                     ImGui.SetNextItemWidth(windowsWidth * 0.5f - 22);
-                    if (ImGui.InputTextMultiline("##text", ref text, ushort.MaxValue, new Vector2(0, 0)))
+                    if (
+                        ImGui.InputTextMultiline(
+                            "##text",
+                            ref text,
+                            ushort.MaxValue,
+                            new Vector2(0, 0)
+                        )
+                    )
                     {
                         _text = text;
                     }
@@ -52,7 +60,13 @@ namespace BlindBoxPlugin.Windows
                     ImGui.SameLine();
                     ImGui.SetNextItemWidth(windowsWidth * 0.5f - 22);
                     var result = string.Join("\n", _result);
-                    ImGui.InputTextMultiline("##result", ref result, ushort.MaxValue, new Vector2(0, 0), ImGuiInputTextFlags.ReadOnly);
+                    ImGui.InputTextMultiline(
+                        "##result",
+                        ref result,
+                        ushort.MaxValue,
+                        new Vector2(0, 0),
+                        ImGuiInputTextFlags.ReadOnly
+                    );
 
                     if (ImGui.Button("获取"))
                     {

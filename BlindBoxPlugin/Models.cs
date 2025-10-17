@@ -11,28 +11,25 @@ namespace BlindBoxPlugin
         FolkloreTome = 4107,
         OrchestrionRoll = 25183,
         FramersKit = 29459,
+
         // FieldNotes = 19743, // bozjan field notes (server side, but cached)
         Ornament = 20086,
         Glasses = 37312,
         CompanySealVouchers = 41120, // can use = is in grand company, is unlocked = always false
     }
+
     public enum DisplayMode
     {
         All,
         Acquired,
-        Missing
+        Missing,
     }
 
     public static class DisplayModeNames
     {
         public static string[] Names()
         {
-            return
-            [
-                "所有",
-                "已获得",
-                "未获得"
-            ];
+            return ["所有", "已获得", "未获得"];
         }
     }
 }

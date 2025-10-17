@@ -2,7 +2,7 @@
 <Project Sdk="Dalamud.NET.Sdk/13.0.0">
   <PropertyGroup>
     <Title>BlindBoxPlugin</Title>
-    <Version>1.9.0.2</Version>
+    <Version>1.9.0.3</Version>
     <Description>A blind box plugin.</Description>
     <PackageProjectUrl>https://github.com/yimo0908/FFXIVBlindBoxPlugin</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -12,8 +12,8 @@
 
   <ItemGroup>
     <Reference Include="FFXIVClientStructs">
-        <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
-        <Private>false</Private>
+      <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
+      <Private>false</Private>
     </Reference>
   </ItemGroup>
 
