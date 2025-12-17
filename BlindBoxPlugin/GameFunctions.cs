@@ -18,33 +18,34 @@ namespace BlindBoxPlugin
             bool? unlocked = null;
             if (item.RowId == 0)
                 return false;
-
-            switch ((ActionType)item.ItemAction.Value.Type)
+            var actionType = item.ItemAction.Value.Action;
+            if (actionType.RowId == 0) return false;
+            switch ((ActionType)actionType.RowId)
             {
                 case ActionType.Companion:
                     unlocked = UIState
                         .Instance()
-                        ->IsCompanionUnlocked(item.ItemAction.Value.Data[0]);
+                        ->IsCompanionUnlocked(item.ItemAction.Value.Data[0].RowId);
                     break;
                 case ActionType.BuddyEquip:
                     unlocked = UIState
                         .Instance()
-                        ->Buddy.CompanionInfo.IsBuddyEquipUnlocked(item.ItemAction.Value.Data[0]);
+                        ->Buddy.CompanionInfo.IsBuddyEquipUnlocked(item.ItemAction.Value.Data[0].RowId);
                     break;
                 case ActionType.Mount:
                     unlocked = PlayerState
                         .Instance()
-                        ->IsMountUnlocked(item.ItemAction.Value.Data[0]);
+                        ->IsMountUnlocked(item.ItemAction.Value.Data[0].RowId);
                     break;
                 case ActionType.SecretRecipeBook:
                     unlocked = PlayerState
                         .Instance()
-                        ->IsSecretRecipeBookUnlocked(item.ItemAction.Value.Data[0]);
+                        ->IsSecretRecipeBookUnlocked(item.ItemAction.Value.Data[0].RowId);
                     break;
                 case ActionType.UnlockLink:
                     unlocked = UIState
                         .Instance()
-                        ->IsUnlockLinkUnlocked(item.ItemAction.Value.Data[0]);
+                        ->IsUnlockLinkUnlocked(item.ItemAction.Value.Data[0].RowId);
                     break;
                 case ActionType.TripleTriadCard when item.AdditionalData.Is<TripleTriadCard>():
                     unlocked = UIState
@@ -54,7 +55,7 @@ namespace BlindBoxPlugin
                 case ActionType.FolkloreTome:
                     unlocked = PlayerState
                         .Instance()
-                        ->IsFolkloreBookUnlocked(item.ItemAction.Value.Data[0]);
+                        ->IsFolkloreBookUnlocked(item.ItemAction.Value.Data[0].RowId);
                     break;
                 case ActionType.OrchestrionRoll when item.AdditionalData.Is<Orchestrion>():
                     unlocked = PlayerState
@@ -69,7 +70,7 @@ namespace BlindBoxPlugin
                 case ActionType.Ornament:
                     unlocked = PlayerState
                         .Instance()
-                        ->IsOrnamentUnlocked(item.ItemAction.Value.Data[0]);
+                        ->IsOrnamentUnlocked(item.ItemAction.Value.Data[0].RowId);
                     break;
                 case ActionType.Glasses:
                     unlocked = PlayerState
