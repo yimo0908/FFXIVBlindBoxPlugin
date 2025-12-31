@@ -1,5 +1,3 @@
-// 物品获取信息
-
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Component.Exd;
 using Lumina.Excel.Sheets;
@@ -9,81 +7,17 @@ namespace BlindBoxPlugin
     public unsafe class GameFunctions
     {
         /// <summary>
-        /// https://github.com/Critical-Impact/CriticalCommonLib/blob/042c3b21cce7c5667814daa622d1c66af517d263/Services/UnlockTrackerService.cs#L110-L177
+        /// Use the EXD-based check which is stable across Lumina versions.
+        /// Falls back to a generic EXD inspection rather than relying on Lumina's ItemAction/Data API.
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
         public static bool IsUnlocked(Item item)
         {
-            bool? unlocked = null;
             if (item.RowId == 0)
                 return false;
-            var actionType = item.ItemAction.Value.Action;
-            if (actionType.RowId == 0) return false;
-            switch ((ActionType)actionType.RowId)
-            {
-                case ActionType.Companion:
-                    unlocked = UIState
-                        .Instance()
-                        ->IsCompanionUnlocked(item.ItemAction.Value.Data[0].RowId);
-                    break;
-                case ActionType.BuddyEquip:
-                    unlocked = UIState
-                        .Instance()
-                        ->Buddy.CompanionInfo.IsBuddyEquipUnlocked(item.ItemAction.Value.Data[0].RowId);
-                    break;
-                case ActionType.Mount:
-                    unlocked = PlayerState
-                        .Instance()
-                        ->IsMountUnlocked(item.ItemAction.Value.Data[0].RowId);
-                    break;
-                case ActionType.SecretRecipeBook:
-                    unlocked = PlayerState
-                        .Instance()
-                        ->IsSecretRecipeBookUnlocked(item.ItemAction.Value.Data[0].RowId);
-                    break;
-                case ActionType.UnlockLink:
-                    unlocked = UIState
-                        .Instance()
-                        ->IsUnlockLinkUnlocked(item.ItemAction.Value.Data[0].RowId);
-                    break;
-                case ActionType.TripleTriadCard when item.AdditionalData.Is<TripleTriadCard>():
-                    unlocked = UIState
-                        .Instance()
-                        ->IsTripleTriadCardUnlocked((ushort)item.AdditionalData.RowId);
-                    break;
-                case ActionType.FolkloreTome:
-                    unlocked = PlayerState
-                        .Instance()
-                        ->IsFolkloreBookUnlocked(item.ItemAction.Value.Data[0].RowId);
-                    break;
-                case ActionType.OrchestrionRoll when item.AdditionalData.Is<Orchestrion>():
-                    unlocked = PlayerState
-                        .Instance()
-                        ->IsOrchestrionRollUnlocked(item.AdditionalData.RowId);
-                    break;
-                case ActionType.FramersKit:
-                    unlocked = PlayerState
-                        .Instance()
-                        ->IsFramersKitUnlocked(item.AdditionalData.RowId);
-                    break;
-                case ActionType.Ornament:
-                    unlocked = PlayerState
-                        .Instance()
-                        ->IsOrnamentUnlocked(item.ItemAction.Value.Data[0].RowId);
-                    break;
-                case ActionType.Glasses:
-                    unlocked = PlayerState
-                        .Instance()
-                        ->IsGlassesUnlocked((ushort)item.AdditionalData.RowId);
-                    break;
-            }
 
-            if (unlocked != null)
-            {
-                return (bool)unlocked;
-            }
-
+            // Generic EXD-based check (works across Lumina versions):
             var row = ExdModule.GetItemRowById(item.RowId);
             if (row == null)
                 return false;
