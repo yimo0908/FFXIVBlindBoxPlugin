@@ -1,6 +1,7 @@
 using BlindBoxPlugin.Windows;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
+using Dalamud.Interface.Textures;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -13,6 +14,7 @@ namespace BlindBoxPlugin
         [PluginService] private static ICommandManager CommandManager { get; set; } = null!;
         [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
         [PluginService] public static IChatGui ChatGui { get; set; } = null!;
+        [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
 
         public string Name => "Blind Box";
         private const string CommandName = "/blindbox";
@@ -28,7 +30,7 @@ namespace BlindBoxPlugin
             Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
             MainWindow = new MainWindow(this);
-            ConfigWindow = new ConfigWindow(this);
+            ConfigWindow = new ConfigWindow();
 
             _windowSystem.AddWindow(MainWindow);
             _windowSystem.AddWindow(ConfigWindow);
@@ -45,9 +47,12 @@ namespace BlindBoxPlugin
 
         public void Dispose()
         {
+            PluginInterface.UiBuilder.Draw -= DrawUI;
+            PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUI;
+            PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUI;
+
             _windowSystem.RemoveAllWindows();
 
-            ConfigWindow.Dispose();
             MainWindow.Dispose();
 
             CommandManager.RemoveHandler(CommandName);

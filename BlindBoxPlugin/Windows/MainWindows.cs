@@ -1,17 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Game.Text;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Windowing;
-using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
 
 namespace BlindBoxPlugin.Windows;
 
-public class MainWindow : Window, IDisposable
+public partial class MainWindow : Window, IDisposable
 {
     private readonly Plugin _plugin;
 
@@ -33,26 +30,41 @@ public class MainWindow : Window, IDisposable
 
     public override void Draw()
     {
+        // 首次打开或选中项无效时自动选择第一个盲盒
+        if (!BlindBoxData.BlindBoxInfoMap.ContainsKey(_plugin.Configuration.SelectedItem)
+            && BlindBoxData.BlindBoxInfoMap.Count > 0)
+        {
+            _plugin.Configuration.SelectedItem = BlindBoxData.BlindBoxInfoMap.Keys.First();
+            _plugin.Configuration.Save();
+        }
+
         // 选择盲盒显示内容
-        var displayModes = Enum.GetNames<DisplayMode>();
-        var displayModeIndex = (int)_plugin.Configuration.DisplayMode;
-        ImGui.SetNextItemWidth(80);
         ImGui.Text("点击物品名称可复制到剪切板。");
         ImGui.TextColored(new Vector4(0, 1, 0, 1), "已获得为绿色，");
         ImGui.SameLine();
         ImGui.Text("未获得可交易为白色，");
         ImGui.SameLine();
-        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1), "未获得不可交易为灰色。");
-        if (
-            ImGui.Combo(
-                "显示物品的种类",
-                ref displayModeIndex,
-                DisplayModeNames.Names(),
-                displayModes.Length
-            )
-        )
+        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1), "未获得不可交易为灰色，");
+        ImGui.SameLine();
+        ImGui.Text("带“*”意为仅可从当前途径获取。");
+        var displayModeIndex = (int)_plugin.Configuration.DisplayMode;
+        ImGui.Text("显示物品的种类：");
+        ImGui.SameLine();
+        if (ImGui.RadioButton("所有", ref displayModeIndex, 0))
         {
-            _plugin.Configuration.DisplayMode = (DisplayMode)displayModeIndex;
+            _plugin.Configuration.DisplayMode = DisplayMode.All;
+            _plugin.Configuration.Save();
+        }
+        ImGui.SameLine();
+        if (ImGui.RadioButton("已获得", ref displayModeIndex, 1))
+        {
+            _plugin.Configuration.DisplayMode = DisplayMode.Acquired;
+            _plugin.Configuration.Save();
+        }
+        ImGui.SameLine();
+        if (ImGui.RadioButton("未获得", ref displayModeIndex, 2))
+        {
+            _plugin.Configuration.DisplayMode = DisplayMode.Missing;
             _plugin.Configuration.Save();
         }
 
@@ -63,9 +75,10 @@ public class MainWindow : Window, IDisposable
             foreach (var item in BlindBoxData.BlindBoxInfoMap)
             {
                 var blindbox = item.Value;
+                DrawItemIcon(blindbox.Item, new Vector4(1, 1, 1, 1));
                 if (
                     ImGui.Selectable(
-                        blindbox.Item.Name.ToString(),
+                        $" {blindbox.Item.Name.ToString()}",
                         blindbox.Item.RowId == _plugin.Configuration.SelectedItem
                     )
                 )
@@ -89,128 +102,40 @@ public class MainWindow : Window, IDisposable
                     out var blindBox
                 )
             )
-                switch (_plugin.Configuration.DisplayMode)
+            {
+                // 每帧计算一次已获得物品 ID 集合，避免 O(n²) native 调用
+                var acquiredRowIds = new HashSet<uint>(
+                    blindBox.Items.Where(GameFunctions.IsUnlocked).Select(i => i.RowId)
+                );
+
+                var items = _plugin.Configuration.DisplayMode switch
                 {
-                    case DisplayMode.All:
-                        foreach (var item in blindBox.Items)
-                            DrawBlindBoxItem(
-                                item.Name.ToString(),
-                                blindBox.UniqueItems.Contains(item.RowId),
-                                item.RowId
-                            );
-                        break;
-                    case DisplayMode.Acquired:
-                        foreach (var item in blindBox.AcquiredItems)
-                            DrawBlindBoxItem(
-                                item.Name.ToString(),
-                                blindBox.UniqueItems.Contains(item.RowId),
-                                item.RowId
-                            );
-                        break;
-                    case DisplayMode.Missing:
-                        foreach (var item in blindBox.MissingItems)
-                            DrawBlindBoxItem(
-                                item.Name.ToString(),
-                                blindBox.UniqueItems.Contains(item.RowId),
-                                item.RowId
-                            );
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
+                    DisplayMode.All => blindBox.Items,
+                    DisplayMode.Acquired => blindBox.Items.Where(i => acquiredRowIds.Contains(i.RowId)).ToList(),
+                    DisplayMode.Missing => blindBox.Items.Where(i => !acquiredRowIds.Contains(i.RowId)).ToList(),
+                    _ => throw new ArgumentOutOfRangeException(),
+                };
+
+                if (ImGui.BeginTable("ItemsTable", 1, ImGuiTableFlags.RowBg))
+                {
+                    foreach (var item in items)
+                    {
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        DrawBlindBoxItem(
+                            item,
+                            blindBox.UniqueItems.Contains(item.RowId),
+                            acquiredRowIds
+                        );
+                    }
+
+                    ImGui.EndTable();
                 }
+            }
             else
                 ImGui.Text("请选择一个盲盒");
 
             ImGui.EndChild();
-        }
-    }
-
-    private void LinkItemToChat(uint item)
-    {
-        var id = Plugin.DataManager.GetExcelSheet<Item>().GetRowOrDefault(item);
-        var rarity = id?.Rarity ?? 0;
-        var itemName = id?.Name.ToString() ?? "";
-
-        var payloadList = new List<Payload>
-        {
-            new UIForegroundPayload((ushort)(0x223 + rarity * 2)),
-            new UIGlowPayload((ushort)(0x224 + rarity * 2)),
-            new ItemPayload(item),
-            new UIForegroundPayload(500),
-            new UIGlowPayload(501),
-            new TextPayload($"{(char)SeIconChar.LinkMarker}"),
-            new UIForegroundPayload(0),
-            new UIGlowPayload(0),
-            new TextPayload(itemName),
-            new RawPayload([0x02, 0x27, 0x07, 0xCF, 0x01, 0x01, 0x01, 0xFF, 0x01, 0x03]),
-            new RawPayload([0x02, 0x13, 0x02, 0xEC, 0x03]),
-        };
-        Plugin.ChatGui.Print(new XivChatEntry { Message = new SeString(payloadList) });
-    }
-
-    private void CopyItemNameToClipboard(uint itemId)
-    {
-        var itemName = Plugin.DataManager.GetExcelSheet<Item>().GetRow(itemId).Name.ExtractText();
-        ImGui.SetClipboardText(itemName);
-    }
-
-    private unsafe void ShowGimmickHint(
-        string text,
-        RaptureAtkModule.TextGimmickHintStyle style = RaptureAtkModule.TextGimmickHintStyle.Info,
-        int duration = 5
-    )
-    {
-        var raptureAtkModule = RaptureAtkModule.Instance();
-        if (raptureAtkModule == null)
-            return;
-        raptureAtkModule->ShowTextGimmickHint(text, style, duration);
-    }
-
-    private void DrawBlindBoxItem(string name, bool unique, uint itemId)
-    {
-        var isUntradable =
-            Plugin.DataManager.GetExcelSheet<Item>().GetRowOrDefault(itemId)?.IsUntradable ?? false;
-        // var isUnique = Plugin.DataManager.GetExcelSheet<Item>().GetRowOrDefault(itemId)?.IsUnique ?? false;
-
-        if (unique)
-        {
-            ImGui.Text("*");
-            ImGui.SameLine();
-        }
-
-        // 获取当前盲盒信息以判断物品是否已获得
-        Vector4 color;
-        if (
-            BlindBoxData.BlindBoxInfoMap.TryGetValue(
-                _plugin.Configuration.SelectedItem,
-                out var blindBox
-            )
-        )
-        {
-            // 如果物品在已获得列表中，设置为绿色
-            if (blindBox.AcquiredItems.Exists(item => item.RowId == itemId))
-                color = new Vector4(0, 1, 0, 1);
-            else
-                // 根据是否可交易设置其他颜色
-                color = isUntradable ? new Vector4(0.5f, 0.5f, 0.5f, 1) : new Vector4(1, 1, 1, 1);
-        }
-        else
-        {
-            // 默认颜色
-            color = isUntradable ? new Vector4(0.5f, 0.5f, 0.5f, 1) : new Vector4(1, 1, 1, 1);
-        }
-
-        ImGui.TextColored(color, name);
-
-        if (ImGui.IsItemClicked())
-        {
-            LinkItemToChat(itemId);
-            CopyItemNameToClipboard(itemId);
-            ShowGimmickHint(
-                $"{name} 已复制到剪切板",
-                RaptureAtkModule.TextGimmickHintStyle.Info,
-                4
-            );
         }
     }
 }

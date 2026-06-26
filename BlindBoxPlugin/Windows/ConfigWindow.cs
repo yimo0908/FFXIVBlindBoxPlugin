@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
@@ -8,17 +6,17 @@ using Lumina.Excel.Sheets;
 
 namespace BlindBoxPlugin.Windows
 {
-    public class ConfigWindow : Window, IDisposable
+    public class ConfigWindow : Window
     {
-        private readonly Configuration _configuration;
-
         private string _text = "";
         private List<string> _result = [];
+        private string _resultText = "";
+        private Dictionary<string, uint>? _itemNameIndex;
 
         // We give this window a constant ID using ###
         // This allows for labels being dynamic, like "{FPS Counter}fps###XYZ counter window",
         // and the window ID will always be "###XYZ counter window" for ImGui
-        public ConfigWindow(Plugin plugin)
+        public ConfigWindow()
             : base("盲盒设置")
         {
             Flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
@@ -29,11 +27,7 @@ namespace BlindBoxPlugin.Windows
                 MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
             };
             SizeCondition = ImGuiCond.Always;
-
-            _configuration = plugin.Configuration;
         }
-
-        public void Dispose() { }
 
         public override void Draw()
         {
@@ -59,10 +53,9 @@ namespace BlindBoxPlugin.Windows
                     ImGui.Text("=>");
                     ImGui.SameLine();
                     ImGui.SetNextItemWidth(windowsWidth * 0.5f - 22);
-                    var result = string.Join("\n", _result);
                     ImGui.InputTextMultiline(
                         "##result",
-                        ref result,
+                        ref _resultText,
                         ushort.MaxValue,
                         new Vector2(0, 0),
                         ImGuiInputTextFlags.ReadOnly
@@ -70,22 +63,30 @@ namespace BlindBoxPlugin.Windows
 
                     if (ImGui.Button("获取"))
                     {
+                        var index = GetItemNameIndex();
                         var items = _text.Split('\n');
-                        List<string> itemIds = [];
+                        List<string> itemIds = new List<string>();
 
                         foreach (var item in items)
                         {
-                            var sheet = Plugin.DataManager.GetExcelSheet<Item>();
-                            var i = sheet.FirstOrDefault(i => i.Name == item);
-                            var rowId = i.RowId != 0 ? i.RowId.ToString() : "名称有误";
+                            var rowId = index.TryGetValue(item, out var id) ? id.ToString() : "名称有误";
                             itemIds.Add(rowId);
                         }
                         _result = itemIds;
+                        _resultText = string.Join("\n", _result);
                     }
                     ImGui.SameLine();
                     if (ImGui.Button("输出到剪贴板"))
                     {
                         ImGui.SetClipboardText(string.Join(",", _result));
+                    }
+                    ImGui.SameLine();
+                    // 新增：清空输入和结果按钮
+                    if (ImGui.Button("清空"))
+                    {
+                        _text = string.Empty;
+                        _result = new List<string>();
+                        _resultText = string.Empty;
                     }
 
                     ImGui.EndTabItem();
@@ -93,6 +94,23 @@ namespace BlindBoxPlugin.Windows
 
                 ImGui.EndTabBar();
             }
+        }
+
+        /// <summary>构建物品名称 → RowId 的索引（懒加载缓存）。</summary>
+        private Dictionary<string, uint> GetItemNameIndex()
+        {
+            if (_itemNameIndex != null)
+                return _itemNameIndex;
+
+            _itemNameIndex = new Dictionary<string, uint>();
+            var sheet = Plugin.DataManager.GetExcelSheet<Item>();
+            foreach (var row in sheet)
+            {
+                var name = row.Name.ToString();
+                if (!string.IsNullOrEmpty(name))
+                    _itemNameIndex.TryAdd(name, row.RowId);
+            }
+            return _itemNameIndex;
         }
     }
 }

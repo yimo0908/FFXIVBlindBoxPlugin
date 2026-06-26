@@ -4,7 +4,7 @@ using Lumina.Excel.Sheets;
 
 namespace BlindBoxPlugin
 {
-    public unsafe class GameFunctions
+    public static unsafe class GameFunctions
     {
         /// <summary>
         /// Use the EXD-based check which is stable across Lumina versions.

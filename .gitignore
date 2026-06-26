@@ -5,3 +5,7 @@ bin/
 Dalamud/
 build/
 /.idea
+/.codegraph
+/.reasonix
+reasonix.toml
+AGENTS.md
