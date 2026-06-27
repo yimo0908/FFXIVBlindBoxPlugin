@@ -34,7 +34,7 @@ public partial class MainWindow : Window, IDisposable
         if (!BlindBoxData.BlindBoxInfoMap.ContainsKey(_plugin.Configuration.SelectedItem)
             && BlindBoxData.BlindBoxInfoMap.Count > 0)
         {
-            _plugin.Configuration.SelectedItem = BlindBoxData.BlindBoxInfoMap.Keys.First();
+            _plugin.Configuration.SelectedItem = BlindBoxData.BlindBoxInfoMap.Keys.Min();
             _plugin.Configuration.Save();
         }
 
@@ -72,20 +72,43 @@ public partial class MainWindow : Window, IDisposable
         var windowsWidth = ImGui.GetWindowWidth();
         if (ImGui.BeginChild("Selectors", new Vector2(windowsWidth * 0.4f, -1), true))
         {
-            foreach (var item in BlindBoxData.BlindBoxInfoMap)
+            ImGui.SetNextItemWidth(-1);
+            var seriesIndex = Math.Clamp(_plugin.Configuration.SelectedSeriesIndex, 0, BlindBoxData.SeriesGroups.Count - 1);
+            var seriesNames = BlindBoxData.SeriesGroups.Select(g => g.Name).ToArray();
+            if (ImGui.Combo("##SeriesFilter", ref seriesIndex, seriesNames, seriesNames.Length))
             {
-                var blindbox = item.Value;
-                DrawItemIcon(blindbox.Item, new Vector4(1, 1, 1, 1));
-                if (
-                    ImGui.Selectable(
-                        $" {blindbox.Item.Name.ToString()}",
-                        blindbox.Item.RowId == _plugin.Configuration.SelectedItem
-                    )
-                )
+                _plugin.Configuration.SelectedSeriesIndex = seriesIndex;
+                _plugin.Configuration.Save();
+            }
+
+            var filter = BlindBoxData.SeriesGroups[seriesIndex].ItemIds;
+            var filtered = filter != null
+                ? BlindBoxData.BlindBoxInfoMap.Where(kvp => filter.Contains(kvp.Key)).OrderBy(kvp => kvp.Key)
+                : BlindBoxData.BlindBoxInfoMap.OrderBy(kvp => kvp.Key);
+
+            if (ImGui.BeginTable("SelectorsTable", 1, ImGuiTableFlags.RowBg))
+            {
+                foreach (var item in filtered)
                 {
-                    _plugin.Configuration.SelectedItem = blindbox.Item.RowId;
-                    _plugin.Configuration.Save();
+                    var blindbox = item.Value;
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    DrawItemIcon(blindbox.Item, new Vector4(1, 1, 1, 1));
+                    ImGui.SameLine();
+                    if (
+                        ImGui.Selectable(
+                            $" {blindbox.Item.Name.ToString()}",
+                            blindbox.Item.RowId == _plugin.Configuration.SelectedItem,
+                            ImGuiSelectableFlags.SpanAllColumns
+                        )
+                    )
+                    {
+                        _plugin.Configuration.SelectedItem = blindbox.Item.RowId;
+                        _plugin.Configuration.Save();
+                    }
                 }
+
+                ImGui.EndTable();
             }
 
             ImGui.EndChild();
@@ -110,9 +133,9 @@ public partial class MainWindow : Window, IDisposable
 
                 var items = _plugin.Configuration.DisplayMode switch
                 {
-                    DisplayMode.All => blindBox.Items,
-                    DisplayMode.Acquired => blindBox.Items.Where(i => acquiredRowIds.Contains(i.RowId)).ToList(),
-                    DisplayMode.Missing => blindBox.Items.Where(i => !acquiredRowIds.Contains(i.RowId)).ToList(),
+                    DisplayMode.All => blindBox.Items.OrderBy(i => i.RowId).ToList(),
+                    DisplayMode.Acquired => blindBox.Items.Where(i => acquiredRowIds.Contains(i.RowId)).OrderBy(i => i.RowId).ToList(),
+                    DisplayMode.Missing => blindBox.Items.Where(i => !acquiredRowIds.Contains(i.RowId)).OrderBy(i => i.RowId).ToList(),
                     _ => throw new ArgumentOutOfRangeException(),
                 };
 

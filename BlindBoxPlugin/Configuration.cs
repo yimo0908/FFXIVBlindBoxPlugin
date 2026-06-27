@@ -9,6 +9,9 @@ namespace BlindBoxPlugin
         public int Version { get; set; } = 0;
         public uint SelectedItem { get; set; }
 
+        // 当前选中的盲盒系列索引（0 = 全部）
+        public int SelectedSeriesIndex { get; set; }
+
         // 显示盲盒物品模式
         public DisplayMode DisplayMode { get; set; } = DisplayMode.Missing;
 
