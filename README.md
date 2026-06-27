@@ -13,8 +13,12 @@
   - ⬛ 灰色 — 未获得，不可交易
 - 带 `*` 标记的物品为仅可从当前途径获取
 - 支持按「所有 / 已获得 / 未获得」筛选显示
-- 点击物品名称可复制到剪切板并发送物品链接到聊天框
-- 设置界面提供物品名称 → 物品 ID 查询工具
+- 盲盒按系列分组，支持下拉框快速筛选系列
+- 左侧盲盒列表 + 右侧物品详情的双栏布局
+- 直接渲染游戏内物品图标
+- 点击物品名称自动复制到剪切板、发送带品质颜色的物品链接到聊天框，并弹出游戏内提示
+- 配置自动保存（当前选中的盲盒、系列筛选、显示模式）
+- 设置界面提供物品名称 → 物品 ID 批量查询工具
 
 ## 支持的盲盒类型
 
@@ -27,6 +31,10 @@
 | 九宫幻卡包 | 白金包、铜包、银包、金包、灵银包、帝国包、梦想包 |
 | 能源包 | 俄匊斯能源包、奥克塞西亚能源包 |
 | 宇宙好运道 | 月球信用点、法恩娜信用点、俄匊斯信用点、奥克塞西亚信用点 |
+| 死者宫殿 | 铜饰宝藏、铁饰宝藏、银饰宝藏、金饰宝藏 |
+| 天之御柱 | 白银宝藏、黄金宝藏、白金宝藏 |
+| 正统优雷卡 | 银辉宝藏、金辉宝藏、铂辉宝藏 |
+| 神圣交错路 | 银光宝藏、金光宝藏、铂光宝藏 |
 
 ## 使用方法
 
@@ -40,7 +48,7 @@
 ## How to get
 
 1. 卫月设置 → 测试版
-2. 添加仓库 `https://raw.githubusercontent.com/yimo0908/FFXIVBlindBoxPlugin/main/repo.json` 并启用
+2. 添加仓库 `https://raw.githubusercontent.com/yimo0908/DalamudPlugin/main/repo.json` 并启用
 3. 从插件列表中安装
 
 ## 项目结构
@@ -80,14 +88,19 @@ FFXIVBlindBoxPlugin/
 
 ### 本地构建
 
-1. 安装 [.NET 9 SDK](https://dotnet.microsoft.com/download) 或更高版本
-2. 下载最新的 Dalamud CN 构建并解压到本地目录（如 `BlindBoxPlugin/Dalamud`）
-3. 设置环境变量后构建：
+前提：[.NET 10 SDK](https://dotnet.microsoft.com/download)，XIVLauncher / Dalamud 已安装（用于运行插件）
 
-   ```powershell
-   $env:DALAMUD_HOME = "路径\到\Dalamud"
-   dotnet build BlindBoxPlugin -c Release
-   ```
+构建：
+
+```powershell
+dotnet build BlindBoxPlugin\BlindBoxPlugin.csproj -c Debug
+```
+
+安装（开发者模式）：
+
+1. 构建后获取 `BlindBoxPlugin.dll`（位于 `bin\x64\Debug\`）
+2. 在 Dalamud 设置 → Experimental → Dev Plugin Locations 中添加 DLL 所在文件夹路径
+3. 在 Dalamud 插件管理器的 Dev Tools 中启用已加载的开发插件
 
 ### 新增或更新盲盒数据
 
@@ -138,19 +151,6 @@ FFXIVBlindBoxPlugin/
 | Ornament | 20086 | 时装配件 |
 | Glasses | 37312 | 眼镜 |
 | CompanySealVouchers | 41120 | 军团券（use = 在军团中，is unlocked = 始终 false） |
-
-### 发布流程
-
-项目使用 GitHub Actions 自动化发布（见 `.github/workflows/main.yml`）：
-
-1. **构建**：每次 push 到 `main` 或 PR 时自动构建验证
-2. **发布**：当创建以 `v` 开头的 Release tag 时触发：
-   - 构建 Release 产物并打包为 `latest.zip`
-   - 上传到 GitHub Release
-   - 运行 `Make-Repo.ps1` 生成 `repo.json`（插件仓库清单文件）
-   - 自动提交 `repo.json` 到 `main` 分支
-
-> **注意**：`Make-Repo.ps1` 中的下载链接模板目前硬编码为 `he0119` 仓库地址。如果是 fork 仓库自行发布，需要修改该脚本中的 `$dlTemplate` 为自己的仓库地址。
 
 ## Credits
 
