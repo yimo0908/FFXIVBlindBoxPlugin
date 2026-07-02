@@ -215,7 +215,11 @@ public partial class MainWindow : Window, IDisposable
         var filter = BlindBoxData.SeriesGroups[seriesIndex].ItemIds;
         var filtered = filter != null
             ? BlindBoxData.BlindBoxInfoMap.Where(kvp => filter.Contains(kvp.Key)).OrderBy(kvp => kvp.Key)
-            : BlindBoxData.BlindBoxInfoMap.OrderBy(kvp => kvp.Key);
+            : BlindBoxData.SeriesGroups
+                .Skip(1) // 跳过"全部"
+                .SelectMany(g => BlindBoxData.BlindBoxInfoMap
+                    .Where(kvp => g.ItemIds.Contains(kvp.Key))
+                    .OrderBy(kvp => kvp.Key));
 
         using var table = ImRaii.Table("##SelectorsTable", 1, ImGuiTableFlags.RowBg);
         if (table.Success)
@@ -280,7 +284,7 @@ public partial class MainWindow : Window, IDisposable
         ImGui.TextColored(PixelDim, "点击物品名称可复制到剪切板");
         ImGui.TextColored(ColorAcquired, "■ 已获得");
         ImGui.SameLine();
-        ImGui.TextColored(PixelDim, "  ■ 未获得可交易");
+        ImGui.TextColored(ColorMissing, "  ■ 未获得可交易");
         ImGui.SameLine();
         ImGui.TextColored(ColorUntradeable, "  ■ 未获得不可交易");
         ImGui.SameLine();
