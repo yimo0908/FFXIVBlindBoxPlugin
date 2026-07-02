@@ -23,14 +23,14 @@ public partial class MainWindow
     {
         var isAcquired = acquiredRowIds.Contains(item.RowId);
         Vector4 color = isAcquired
-            ? new Vector4(0, 1, 0, 1)
-            : (item.IsUntradable ? new Vector4(0.5f, 0.5f, 0.5f, 1) : new Vector4(1, 1, 1, 1));
+            ? ColorAcquired
+            : (item.IsUntradable ? ColorUntradeable : ColorMissing);
 
         DrawItemIcon(item, new Vector4(1, 1, 1, 1));
 
         if (unique)
         {
-            ImGui.Text("*");
+            ImGui.TextColored(ColorUnique, "*");
             ImGui.SameLine();
         }
 

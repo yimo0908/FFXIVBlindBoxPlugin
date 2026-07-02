@@ -41,14 +41,14 @@ namespace BlindBoxPlugin
             });
 
             PluginInterface.UiBuilder.Draw += DrawUI;
-            PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
+            PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
             PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
         }
 
         public void Dispose()
         {
             PluginInterface.UiBuilder.Draw -= DrawUI;
-            PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUI;
+            PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
             PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUI;
 
             _windowSystem.RemoveAllWindows();
@@ -71,7 +71,7 @@ namespace BlindBoxPlugin
         }
 
         private void DrawUI() => _windowSystem.Draw();
-        private void ToggleConfigUI() => ConfigWindow.Toggle();
+        public void ToggleConfigUi() => ConfigWindow.Toggle();
         private void ToggleMainUI() => MainWindow.Toggle();
     }
 }
