@@ -221,26 +221,33 @@ public partial class MainWindow : Window, IDisposable
                     .Where(kvp => g.ItemIds.Contains(kvp.Key))
                     .OrderBy(kvp => kvp.Key));
 
-        using var table = ImRaii.Table("##SelectorsTable", 1, ImGuiTableFlags.RowBg);
-        if (table.Success)
+        // 仅列表区域滚动
+        using (var listChild = ImRaii.Child("##SelectorsList", new Vector2(-1, -1), false))
         {
-            foreach (var item in filtered)
+            if (listChild.Success)
             {
-                var blindbox = item.Value;
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-                DrawItemIcon(blindbox.Item, new Vector4(1, 1, 1, 1));
-                ImGui.SameLine();
-                if (
-                    ImGui.Selectable(
-                        $" {blindbox.Item.Name.ToString()}",
-                        blindbox.Item.RowId == _plugin.Configuration.SelectedItem,
-                        ImGuiSelectableFlags.SpanAllColumns
-                    )
-                )
+                using var table = ImRaii.Table("##SelectorsTable", 1, ImGuiTableFlags.RowBg);
+                if (table.Success)
                 {
-                    _plugin.Configuration.SelectedItem = blindbox.Item.RowId;
-                    _plugin.Configuration.Save();
+                    foreach (var item in filtered)
+                    {
+                        var blindbox = item.Value;
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        DrawItemIcon(blindbox.Item, new Vector4(1, 1, 1, 1));
+                        ImGui.SameLine();
+                        if (
+                            ImGui.Selectable(
+                                $" {blindbox.Item.Name.ToString()}",
+                                blindbox.Item.RowId == _plugin.Configuration.SelectedItem,
+                                ImGuiSelectableFlags.SpanAllColumns
+                            )
+                        )
+                        {
+                            _plugin.Configuration.SelectedItem = blindbox.Item.RowId;
+                            _plugin.Configuration.Save();
+                        }
+                    }
                 }
             }
         }
@@ -301,18 +308,25 @@ public partial class MainWindow : Window, IDisposable
             _ => throw new ArgumentOutOfRangeException(),
         };
 
-        using var table = ImRaii.Table("##ItemsTable", 1, ImGuiTableFlags.RowBg);
-        if (table.Success)
+        // 仅列表区域滚动
+        using (var listChild = ImRaii.Child("##ItemsList", new Vector2(-1, -1), false))
         {
-            foreach (var item in items)
+            if (listChild.Success)
             {
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-                DrawBlindBoxItem(
-                    item,
-                    blindBox.UniqueItems.Contains(item.RowId),
-                    acquiredRowIds
-                );
+                using var table = ImRaii.Table("##ItemsTable", 1, ImGuiTableFlags.RowBg);
+                if (table.Success)
+                {
+                    foreach (var item in items)
+                    {
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        DrawBlindBoxItem(
+                            item,
+                            blindBox.UniqueItems.Contains(item.RowId),
+                            acquiredRowIds
+                        );
+                    }
+                }
             }
         }
     }
