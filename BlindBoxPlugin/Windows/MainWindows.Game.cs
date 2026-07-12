@@ -11,17 +11,16 @@ namespace BlindBoxPlugin.Windows;
 public partial class MainWindow
 {
     /// <summary>将物品链接发送到聊天框。</summary>
-    private void LinkItemToChat(uint item)
+    private void LinkItemToChat(Item item)
     {
-        var id = Plugin.DataManager.GetExcelSheet<Item>().GetRowOrDefault(item);
-        var rarity = id?.Rarity ?? 0;
-        var itemName = id?.Name.ToString() ?? "";
+        var rarity = item.Rarity;
+        var itemName = item.Name.ExtractText();
 
         var payloadList = new List<Payload>
         {
             new UIForegroundPayload((ushort)(0x223 + rarity * 2)),
             new UIGlowPayload((ushort)(0x224 + rarity * 2)),
-            new ItemPayload(item),
+            new ItemPayload(item.RowId),
             new UIForegroundPayload(500),
             new UIGlowPayload(501),
             new TextPayload($"{(char)SeIconChar.LinkMarker}"),
@@ -31,15 +30,13 @@ public partial class MainWindow
             new RawPayload([0x02, 0x27, 0x07, 0xCF, 0x01, 0x01, 0x01, 0xFF, 0x01, 0x03]),
             new RawPayload([0x02, 0x13, 0x02, 0xEC, 0x03]),
         };
-        Plugin.ChatGui.Print(new XivChatEntry { Message = new SeString(payloadList) });
+        Plugin.ChatGUI.Print(new XivChatEntry { Message = new SeString(payloadList) });
     }
 
     /// <summary>将物品名称复制到剪切板。</summary>
-    private void CopyItemNameToClipboard(uint itemId)
+    private void CopyItemNameToClipboard(Item item)
     {
-        var item = Plugin.DataManager.GetExcelSheet<Item>().GetRowOrDefault(itemId);
-        var itemName = item?.Name.ExtractText() ?? string.Empty;
-        ImGui.SetClipboardText(itemName);
+        ImGui.SetClipboardText(item.Name.ExtractText());
     }
 
     /// <summary>在游戏界面上显示一段提示文本。</summary>

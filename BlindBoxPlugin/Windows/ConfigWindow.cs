@@ -8,14 +8,11 @@ namespace BlindBoxPlugin.Windows
 {
     public class ConfigWindow : Window
     {
-        private string _text = "";
-        private List<string> _result = [];
-        private string _resultText = "";
-        private Dictionary<string, uint>? _itemNameIndex;
+        private string text = "";
+        private List<string> result = [];
+        private string resultText = "";
+        private Dictionary<string, uint>? itemNameIndex;
 
-        // We give this window a constant ID using ###
-        // This allows for labels being dynamic, like "{FPS Counter}fps###XYZ counter window",
-        // and the window ID will always be "###XYZ counter window" for ImGui
         public ConfigWindow()
             : base("盲盒设置")
         {
@@ -36,7 +33,7 @@ namespace BlindBoxPlugin.Windows
                 if (ImGui.BeginTabItem("获取物品Id"))
                 {
                     var windowsWidth = ImGui.GetWindowWidth();
-                    var text = _text;
+                    var text = this.text;
                     ImGui.SetNextItemWidth(windowsWidth * 0.5f - 22);
                     if (
                         ImGui.InputTextMultiline(
@@ -47,7 +44,7 @@ namespace BlindBoxPlugin.Windows
                         )
                     )
                     {
-                        _text = text;
+                        this.text = text;
                     }
                     ImGui.SameLine();
                     ImGui.Text("=>");
@@ -55,7 +52,7 @@ namespace BlindBoxPlugin.Windows
                     ImGui.SetNextItemWidth(windowsWidth * 0.5f - 22);
                     ImGui.InputTextMultiline(
                         "##result",
-                        ref _resultText,
+                        ref resultText,
                         ushort.MaxValue,
                         new Vector2(0, 0),
                         ImGuiInputTextFlags.ReadOnly
@@ -64,29 +61,28 @@ namespace BlindBoxPlugin.Windows
                     if (ImGui.Button("获取"))
                     {
                         var index = GetItemNameIndex();
-                        var items = _text.Split('\n');
+                        var items = this.text.Split('\n');
                         List<string> itemIds = new List<string>();
 
                         foreach (var item in items)
                         {
-                            var rowId = index.TryGetValue(item, out var id) ? id.ToString() : "名称有误";
-                            itemIds.Add(rowId);
+                            var rowID = index.TryGetValue(item, out var id) ? id.ToString() : "名称有误";
+                            itemIds.Add(rowID);
                         }
-                        _result = itemIds;
-                        _resultText = string.Join("\n", _result);
+                        result = itemIds;
+                        resultText = string.Join("\n", result);
                     }
                     ImGui.SameLine();
                     if (ImGui.Button("输出到剪贴板"))
                     {
-                        ImGui.SetClipboardText(string.Join(",", _result));
+                        ImGui.SetClipboardText(string.Join(",", result));
                     }
                     ImGui.SameLine();
-                    // 新增：清空输入和结果按钮
                     if (ImGui.Button("清空"))
                     {
-                        _text = string.Empty;
-                        _result = new List<string>();
-                        _resultText = string.Empty;
+                        this.text = string.Empty;
+                        result = new List<string>();
+                        resultText = string.Empty;
                     }
 
                     ImGui.EndTabItem();
@@ -99,18 +95,18 @@ namespace BlindBoxPlugin.Windows
         /// <summary>构建物品名称 → RowId 的索引（懒加载缓存）。</summary>
         private Dictionary<string, uint> GetItemNameIndex()
         {
-            if (_itemNameIndex != null)
-                return _itemNameIndex;
+            if (itemNameIndex != null)
+                return itemNameIndex;
 
-            _itemNameIndex = new Dictionary<string, uint>();
-            var sheet = Plugin.DataManager.GetExcelSheet<Item>();
+            itemNameIndex = new Dictionary<string, uint>();
+            var sheet = Plugin.ItemSheet;
             foreach (var row in sheet)
             {
                 var name = row.Name.ToString();
                 if (!string.IsNullOrEmpty(name))
-                    _itemNameIndex.TryAdd(name, row.RowId);
+                    itemNameIndex.TryAdd(name, row.RowId);
             }
-            return _itemNameIndex;
+            return itemNameIndex;
         }
     }
 }

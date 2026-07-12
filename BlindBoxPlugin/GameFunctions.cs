@@ -6,12 +6,9 @@ namespace BlindBoxPlugin
 {
     public static unsafe class GameFunctions
     {
-        /// <summary>
-        /// Use the EXD-based check which is stable across Lumina versions.
-        /// Falls back to a generic EXD inspection rather than relying on Lumina's ItemAction/Data API.
-        /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <summary>通过 EXD 模块检查物品是否已解锁（已获得）。</summary>
+        /// <param name="item">要检查的物品。</param>
+        /// <returns>已解锁返回 true，否则 false。</returns>
         public static bool IsUnlocked(Item item)
         {
             if (item.RowId == 0)

@@ -14,7 +14,7 @@ namespace BlindBoxPlugin.Windows;
 
 public partial class MainWindow : Window, IDisposable
 {
-    private readonly Plugin _plugin;
+    private readonly Plugin plugin;
 
     // ── 像素暗色主题常量 ──
     private static readonly Vector4 PixelWindowBg = new(0.06f, 0.06f, 0.08f, 0.96f);
@@ -31,12 +31,11 @@ public partial class MainWindow : Window, IDisposable
     private static readonly Vector4 ColorMissing    = new(0.85f, 0.85f, 0.85f, 1f);
     private static readonly Vector4 ColorUntradeable= new(0.45f, 0.45f, 0.5f, 1f);
     private static readonly Vector4 ColorUnique     = new(1.0f, 0.78f, 0.25f, 1f);
-    private static readonly Vector4 ColorDefault    = new(0.85f, 0.85f, 0.85f, 1f);
 
     // ── 进度条颜色 ──
-    private static readonly uint ProgressColorComplete = ImGui.GetColorU32(new Vector4(0.2f, 0.9f, 0.25f, 1f));
+    private static readonly uint ProgressColorComplete = ImGui.GetColorU32(ColorAcquired);
     private static readonly uint ProgressColorHigh     = ImGui.GetColorU32(new Vector4(0.3f, 0.7f, 1f, 1f));
-    private static readonly uint ProgressColorMid      = ImGui.GetColorU32(new Vector4(1f, 0.78f, 0.25f, 1f));
+    private static readonly uint ProgressColorMid      = ImGui.GetColorU32(ColorUnique);
     private static readonly uint ProgressColorLow      = ImGui.GetColorU32(new Vector4(1f, 0.35f, 0.35f, 1f));
 
     private const int PushedColorCount = 10;
@@ -44,7 +43,7 @@ public partial class MainWindow : Window, IDisposable
 
     private static readonly string[] DisplayModeLabels = { "所有", "已获得", "未获得" };
 
-    private readonly StringBuilder _sb = new();
+    private readonly StringBuilder sb = new();
 
     public MainWindow(Plugin plugin)
         : base("盲盒信息##BlindBoxMain", ImGuiWindowFlags.NoScrollbar)
@@ -55,17 +54,24 @@ public partial class MainWindow : Window, IDisposable
             MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
         };
         SizeCondition = ImGuiCond.FirstUseEver;
-        _plugin = plugin;
+        this.plugin = plugin;
 
         TitleBarButtons.Add(new()
         {
             Icon = FontAwesomeIcon.Cog,
             IconOffset = new(1),
-            Click = _ => _plugin.ToggleConfigUi()
+            Click = _ => plugin.ToggleConfigUI()
         });
     }
 
     public void Dispose() { }
+
+    /// <summary>修改配置并自动保存。</summary>
+    private void UpdateConfig(Action<Configuration> mutate)
+    {
+        mutate(plugin.Configuration);
+        plugin.Configuration.Save();
+    }
 
     public override void PreDraw()
     {
@@ -77,7 +83,7 @@ public partial class MainWindow : Window, IDisposable
         ImGui.PushStyleColor(ImGuiCol.Button,         PixelButtonBg);
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered,  PixelTabHover);
         ImGui.PushStyleColor(ImGuiCol.ButtonActive,   PixelTabActive);
-        ImGui.PushStyleColor(ImGuiCol.Text,           ColorDefault);
+        ImGui.PushStyleColor(ImGuiCol.Text,           ColorMissing);
         ImGui.PushStyleColor(ImGuiCol.PlotHistogram,  PixelAccent);
 
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding,    0f);
@@ -101,11 +107,10 @@ public partial class MainWindow : Window, IDisposable
         using var fontScope = Plugin.PluginInterface.UiBuilder.MonoFontHandle.Push();
 
         // 首次打开或选中项无效时自动选择第一个盲盒
-        if (!BlindBoxData.BlindBoxInfoMap.ContainsKey(_plugin.Configuration.SelectedItem)
+        if (!BlindBoxData.BlindBoxInfoMap.ContainsKey(plugin.Configuration.SelectedItem)
             && BlindBoxData.BlindBoxInfoMap.Count > 0)
         {
-            _plugin.Configuration.SelectedItem = BlindBoxData.BlindBoxInfoMap.Keys.Min();
-            _plugin.Configuration.Save();
+            UpdateConfig(c => c.SelectedItem = BlindBoxData.BlindBoxInfoMap.Keys.Min());
         }
 
         // 左右双栏布局
@@ -127,7 +132,7 @@ public partial class MainWindow : Window, IDisposable
 
     private void DrawDisplayModeTabs()
     {
-        var modeIndex = (int)_plugin.Configuration.DisplayMode;
+        var modeIndex = (int)plugin.Configuration.DisplayMode;
         for (int i = 0; i < DisplayModeLabels.Length; i++)
         {
             if (i > 0) ImGui.SameLine();
@@ -140,8 +145,7 @@ public partial class MainWindow : Window, IDisposable
 
             if (ImGui.SmallButton($" {DisplayModeLabels[i]} ##displayMode{i}"))
             {
-                _plugin.Configuration.DisplayMode = (DisplayMode)i;
-                _plugin.Configuration.Save();
+                UpdateConfig(c => c.DisplayMode = (DisplayMode)i);
             }
 
             ImGui.PopStyleColor(4);
@@ -151,9 +155,7 @@ public partial class MainWindow : Window, IDisposable
     private void DrawSectionHeader(string title)
     {
         ImGui.TextColored(PixelAccent, title);
-        ImGuiHelpers.ScaledDummy(2);
-        DrawPixelSeparator();
-        ImGuiHelpers.ScaledDummy(2);
+        DrawPixelSeparatorWithSpacing();
     }
 
     private void DrawPixelSeparator()
@@ -163,9 +165,16 @@ public partial class MainWindow : Window, IDisposable
         if (charWidth <= 0) return;
         var count = Math.Max(1, (int)(avail / charWidth));
 
-        _sb.Clear();
-        _sb.Append('─', count);
-        ImGui.TextColored(PixelDim, _sb.ToString());
+        sb.Clear();
+        sb.Append('─', count);
+        ImGui.TextColored(PixelDim, sb.ToString());
+    }
+
+    private void DrawPixelSeparatorWithSpacing()
+    {
+        ImGuiHelpers.ScaledDummy(2);
+        DrawPixelSeparator();
+        ImGuiHelpers.ScaledDummy(2);
     }
 
     private void DrawPixelProgress(float ratio, int current, int max)
@@ -174,19 +183,19 @@ public partial class MainWindow : Window, IDisposable
         var filled = Math.Clamp((int)Math.Round(ratio * barWidth), 0, barWidth);
         var barColor = ImGui.ColorConvertU32ToFloat4(GetProgressColor(ratio));
 
-        _sb.Clear();
-        _sb.Append('[');
-        _sb.Append('█', filled);
-        _sb.Append('░', barWidth - filled);
-        _sb.Append("] ");
-        _sb.Append(current);
-        _sb.Append(" / ");
-        _sb.Append(max);
-        _sb.Append(" (");
-        _sb.Append((int)(ratio * 100));
-        _sb.Append("%)");
+        sb.Clear();
+        sb.Append('[');
+        sb.Append('█', filled);
+        sb.Append('░', barWidth - filled);
+        sb.Append("] ");
+        sb.Append(current);
+        sb.Append(" / ");
+        sb.Append(max);
+        sb.Append(" (");
+        sb.Append((int)(ratio * 100));
+        sb.Append("%)");
 
-        ImGui.TextColored(barColor, _sb.ToString());
+        ImGui.TextColored(barColor, sb.ToString());
     }
 
     private static uint GetProgressColor(float progress) => progress switch
@@ -202,18 +211,17 @@ public partial class MainWindow : Window, IDisposable
         DrawSectionHeader("▌ 盲盒列表");
 
         ImGui.SetNextItemWidth(-1);
-        var seriesIndex = Math.Clamp(_plugin.Configuration.SelectedSeriesIndex, 0, BlindBoxData.SeriesGroups.Count - 1);
+        var seriesIndex = Math.Clamp(plugin.Configuration.SelectedSeriesIndex, 0, BlindBoxData.SeriesGroups.Count - 1);
         var seriesNames = BlindBoxData.SeriesGroups.Select(g => g.Name).ToArray();
         if (ImGui.Combo("##SeriesFilter", ref seriesIndex, seriesNames, seriesNames.Length))
         {
-            _plugin.Configuration.SelectedSeriesIndex = seriesIndex;
-            _plugin.Configuration.Save();
+            UpdateConfig(c => c.SelectedSeriesIndex = seriesIndex);
         }
 
         ImGuiHelpers.ScaledDummy(2);
 
         var filter = BlindBoxData.SeriesGroups[seriesIndex].ItemIds;
-        var filtered = filter != null
+        var filtered = filter.Count > 0
             ? BlindBoxData.BlindBoxInfoMap.Where(kvp => filter.Contains(kvp.Key)).OrderBy(kvp => kvp.Key)
             : BlindBoxData.SeriesGroups
                 .Skip(1) // 跳过"全部"
@@ -234,18 +242,17 @@ public partial class MainWindow : Window, IDisposable
                         var blindbox = item.Value;
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        DrawItemIcon(blindbox.Item, new Vector4(1, 1, 1, 1));
+                        DrawItemIcon(blindbox.Item);
                         ImGui.SameLine();
                         if (
                             ImGui.Selectable(
-                                $" {blindbox.Item.Name.ToString()}",
-                                blindbox.Item.RowId == _plugin.Configuration.SelectedItem,
+                                $" {blindbox.Item.Name.ExtractText()}",
+                                blindbox.Item.RowId == plugin.Configuration.SelectedItem,
                                 ImGuiSelectableFlags.SpanAllColumns
                             )
                         )
                         {
-                            _plugin.Configuration.SelectedItem = blindbox.Item.RowId;
-                            _plugin.Configuration.Save();
+                            UpdateConfig(c => c.SelectedItem = blindbox.Item.RowId);
                         }
                     }
                 }
@@ -257,7 +264,7 @@ public partial class MainWindow : Window, IDisposable
     {
         if (
             !BlindBoxData.BlindBoxInfoMap.TryGetValue(
-                _plugin.Configuration.SelectedItem,
+                plugin.Configuration.SelectedItem,
                 out var blindBox
             )
         )
@@ -272,16 +279,14 @@ public partial class MainWindow : Window, IDisposable
         );
 
         // 顶部：盲盒名称 + 获取进度
-        DrawSectionHeader($"▌ {blindBox.Item.Name.ToString()}");
+        DrawSectionHeader($"▌ {blindBox.Item.Name.ExtractText()}");
 
         var totalCount = blindBox.Items.Count;
         var acquiredCount = blindBox.Items.Count(i => acquiredRowIds.Contains(i.RowId));
         var ratio = totalCount > 0 ? (float)acquiredCount / totalCount : 0f;
         DrawPixelProgress(ratio, acquiredCount, totalCount);
 
-        ImGuiHelpers.ScaledDummy(2);
-        DrawPixelSeparator();
-        ImGuiHelpers.ScaledDummy(2);
+        DrawPixelSeparatorWithSpacing();
 
         // 显示模式切换
         DrawDisplayModeTabs();
@@ -300,7 +305,7 @@ public partial class MainWindow : Window, IDisposable
         ImGuiHelpers.ScaledDummy(3);
 
         // 物品列表
-        var items = _plugin.Configuration.DisplayMode switch
+        var items = plugin.Configuration.DisplayMode switch
         {
             DisplayMode.All => blindBox.Items.OrderBy(i => i.RowId).ToList(),
             DisplayMode.Acquired => blindBox.Items.Where(i => acquiredRowIds.Contains(i.RowId)).OrderBy(i => i.RowId).ToList(),

@@ -5,6 +5,8 @@ using Dalamud.Interface.Textures;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using Lumina.Excel;
+using Lumina.Excel.Sheets;
 
 namespace BlindBoxPlugin
 {
@@ -13,15 +15,18 @@ namespace BlindBoxPlugin
         [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
         [PluginService] private static ICommandManager CommandManager { get; set; } = null!;
         [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
-        [PluginService] public static IChatGui ChatGui { get; set; } = null!;
+        [PluginService] internal static IChatGui ChatGUI { get; private set; } = null!;
         [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
+
+        /// <summary>物品 ExcelSheet 的统一访问点，避免散布的 GetExcelSheet 调用。</summary>
+        internal static ExcelSheet<Item> ItemSheet => DataManager.GetExcelSheet<Item>();
 
         public string Name => "Blind Box";
         private const string CommandName = "/blindbox";
 
         public Configuration Configuration { get; init; }
 
-        private readonly WindowSystem _windowSystem = new("BlindBox");
+        private readonly WindowSystem windowSystem = new("BlindBox");
         private ConfigWindow ConfigWindow { get; init; }
         private MainWindow MainWindow { get; init; }
 
@@ -32,8 +37,8 @@ namespace BlindBoxPlugin
             MainWindow = new MainWindow(this);
             ConfigWindow = new ConfigWindow();
 
-            _windowSystem.AddWindow(MainWindow);
-            _windowSystem.AddWindow(ConfigWindow);
+            windowSystem.AddWindow(MainWindow);
+            windowSystem.AddWindow(ConfigWindow);
 
             CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
             {
@@ -41,17 +46,17 @@ namespace BlindBoxPlugin
             });
 
             PluginInterface.UiBuilder.Draw += DrawUI;
-            PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
+            PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
             PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
         }
 
         public void Dispose()
         {
             PluginInterface.UiBuilder.Draw -= DrawUI;
-            PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
+            PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUI;
             PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUI;
 
-            _windowSystem.RemoveAllWindows();
+            windowSystem.RemoveAllWindows();
 
             MainWindow.Dispose();
 
@@ -70,8 +75,8 @@ namespace BlindBoxPlugin
             }
         }
 
-        private void DrawUI() => _windowSystem.Draw();
-        public void ToggleConfigUi() => ConfigWindow.Toggle();
+        private void DrawUI() => windowSystem.Draw();
+        public void ToggleConfigUI() => ConfigWindow.Toggle();
         private void ToggleMainUI() => MainWindow.Toggle();
     }
 }

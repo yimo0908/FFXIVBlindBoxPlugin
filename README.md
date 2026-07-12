@@ -22,19 +22,19 @@
 
 ## 支持的盲盒类型
 
-| 分类 | 名称 |
-|------|------|
-| 特殊配给货箱 | 特殊配给货箱（重生/苍穹）、特殊配给货箱（红莲） |
-| 庆典礼物箱 | 庆典礼物箱 |
-| 无人岛 | 无人岛特殊配给货箱 |
-| 上锁的宝箱 | 常风地带、恒冰地带、涌火地带、丰水地带、南方战线、高原 |
-| 九宫幻卡包 | 白金包、铜包、银包、金包、灵银包、帝国包、梦想包 |
-| 能源包 | 俄匊斯能源包、奥克塞西亚能源包 |
-| 宇宙好运道 | 月球信用点、法恩娜信用点、俄匊斯信用点、奥克塞西亚信用点 |
-| 死者宫殿 | 铜饰宝藏、铁饰宝藏、银饰宝藏、金饰宝藏 |
-| 天之御柱 | 白银宝藏、黄金宝藏、白金宝藏 |
-| 正统优雷卡 | 银辉宝藏、金辉宝藏、铂辉宝藏 |
-| 神圣交错路 | 银光宝藏、金光宝藏、铂光宝藏 |
+| 分类　　　　 | 名称　　　　　　　　　　　　　　　　　　　　　　　　　　 |
+| --------------| ----------------------------------------------------------|
+| 特殊配给货箱 | 特殊配给货箱（重生/苍穹）、特殊配给货箱（红莲）　　　　　|
+| 庆典礼物箱　 | 庆典礼物箱　　　　　　　　　　　　　　　　　　　　　　　 |
+| 无人岛　　　 | 无人岛特殊配给货箱　　　　　　　　　　　　　　　　　　　 |
+| 上锁的宝箱　 | 常风地带、恒冰地带、涌火地带、丰水地带、南方战线、高原　 |
+| 九宫幻卡包　 | 白金包、铜包、银包、金包、灵银包、帝国包、梦想包　　　　 |
+| 能源包　　　 | 俄匊斯能源包、奥克塞西亚能源包　　　　　　　　　　　　　 |
+| 宇宙好运道　 | 月球信用点、法恩娜信用点、俄匊斯信用点、奥克塞西亚信用点 |
+| 死者宫殿　　 | 铜饰宝藏、铁饰宝藏、银饰宝藏、金饰宝藏　　　　　　　　　 |
+| 天之御柱　　 | 白银宝藏、黄金宝藏、白金宝藏　　　　　　　　　　　　　　 |
+| 正统优雷卡　 | 银辉宝藏、金辉宝藏、铂辉宝藏　　　　　　　　　　　　　　 |
+| 神圣交错路　 | 银光宝藏、金光宝藏、铂光宝藏　　　　　　　　　　　　　　 |
 
 ## 使用方法
 
@@ -58,9 +58,10 @@ FFXIVBlindBoxPlugin/
 ├── BlindBoxPlugin/                 # 插件主项目
 │   ├── BlindBoxPlugin.csproj       # 项目文件，SDK 为 Dalamud.CN.NET.Sdk
 │   ├── BlindBoxPlugin.json         # 插件元数据（名称、描述、图标等）
+│   ├── blind_boxes.json            # 盲盒数据（嵌入式资源，编译时打包进 DLL）
 │   ├── Plugin.cs                   # 插件入口，注册命令与窗口
-│   ├── Configuration.cs            # 插件配置（选中的盲盒 ID、显示模式）
-│   ├── Data.cs                     # 盲盒数据定义与查找表 BlindBoxInfoMap
+│   ├── Configuration.cs            # 插件配置（选中的盲盒 ID、系列筛选、显示模式）
+│   ├── Data.cs                     # 盲盒数据加载与查找表 BlindBoxInfoMap
 │   ├── Models.cs                   # DisplayMode 枚举
 │   ├── GameFunctions.cs            # 物品解锁状态检测
 │   └── Windows/
@@ -77,12 +78,12 @@ FFXIVBlindBoxPlugin/
 
 | 文件 | 职责 |
 |------|------|
-| `Plugin.cs` | 插件入口点，注册 `/blindbox` 命令，初始化 `MainWindow` 与 `ConfigWindow` |
-| `Data.cs` | 所有盲盒数据的定义。每个盲盒为一个 `BlindBoxInfo` 实例，最终注册到 `BlindBoxInfoMap` 查找表 |
+| `Plugin.cs` | 插件入口点，注册 `/blindbox` 命令，初始化 `MainWindow` 与 `ConfigWindow`，提供 `ItemSheet` 等静态服务访问 |
+| `Data.cs` | 盲盒数据的加载入口。从嵌入式资源 `blind_boxes.json` 读取分组与首盒数据，构建 `BlindBoxInfoMap` 查找表和 `SeriesGroups` 系列分组 |
 | `Models.cs` | `DisplayMode` 枚举（所有/已获得/未获得）控制显示筛选 |
 | `GameFunctions.cs` | 通过 FFXIVClientStructs 的 `UIState->IsItemActionUnlocked` 判断物品是否已解锁 |
-| `Configuration.cs` | 持久化配置：当前选中的盲盒 ID 和显示模式 |
-| `MainWindows.*.cs` | 主窗口使用 partial class 拆分为三个文件，分别负责布局、绘制和游戏交互 |
+| `Configuration.cs` | 持久化配置：当前选中的盲盒 ID、系列筛选索引和显示模式 |
+| `MainWindows.*.cs` | 主窗口使用 partial class 拆分为三个文件，分别负责布局、绘制和游戏交互。通过 `UpdateConfig` 统一修改并保存配置 |
 
 ## 维护说明
 
@@ -104,24 +105,45 @@ dotnet build BlindBoxPlugin\BlindBoxPlugin.csproj -c Debug
 
 ### 新增或更新盲盒数据
 
-盲盒数据全部硬编码在 `Data.cs` 中，不依赖外部数据文件。新增一个盲盒需要：
+盲盒数据存储在 `BlindBoxPlugin/blind_boxes.json` 中，作为嵌入式资源编译进 DLL。新增或修改盲盒只需编辑此 JSON 文件：
 
-1. 在 `BlindBoxData` 类中创建 `BlindBoxInfo` 实例：
-   ```csharp
-   private static readonly BlindBoxInfo NewBox = new(
-       盲盒道具ID,
-       [物品ID列表],
-       [仅可从此途径获取的物品ID列表]  // 可选，没有则省略
-   );
-   ```
-2. 将实例注册到 `BlindBoxInfoMap`：
-   ```csharp
-   [盲盒道具ID] = NewBox,
-   ```
+```json
+[
+  {
+    "name": "系列名称",
+    "boxes": [
+      {
+        "id": 36635,
+        "name": "盲盒名称",
+        "items": [6003, 6004, 6005],
+        "uniqueItems": [6003]
+      }
+    ]
+  }
+]
+```
+
+**字段说明**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `name`（系列级） | string | 系列分组名称，显示在下拉筛选框中 |
+| `boxes` | array | 该系列下的所有盲盒条目 |
+| `id` | uint | 盲盒道具 ID |
+| `name`（首盒级） | string | 盲盒名称（仅用于 JSON 可读性，运行时从 ExcelSheet 获取） |
+| `items` | uint[] | 盲盒包含的所有物品 ID |
+| `uniqueItems` | uint[] | 仅可从当前途径获取的物品 ID（可选，界面中显示 `*` 标记） |
 
 **关于 `UniqueItems`**：标记为 unique 的物品在界面中会显示 `*` 前缀，表示该物品仅可从当前盲盒途径获取。如果某物品可通过多种途径获得，则不应加入 unique 列表。
 
 **获取物品 ID**：可使用设置界面（`/blindbox config` →「获取物品Id」标签页）输入物品名称批量查询 ID，也可通过 [Garland Tools](https://garlandtools.org/db/) 或游戏解包数据查找。
+
+### 开发约定
+
+- **ExcelSheet 访问**：统一使用 `Plugin.ItemSheet` 获取物品表，避免散布的 `GetExcelSheet<Item>()` 调用
+- **配置修改**：使用 `UpdateConfig(Action<Configuration>)` 方法修改并自动保存配置，防止遗漏 `Save()` 调用
+- **物品名称**：统一使用 `Name.ExtractText()` 获取纯文本名称，不使用 `Name.ToString()`
+- **可见性**：`BlindBoxInfo` 为 `public` 类，`BlindBoxGroupJSON` / `BlindBoxEntryJSON` 为 `internal` DTO，仅插件内部使用
 
 ### 解锁检测原理
 
